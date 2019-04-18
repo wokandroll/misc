@@ -1,5 +1,6 @@
 let cheerio = require('cheerio')
 let fs = require('fs');
+var parse  = require('url-parse');
 
 
 let postman= {
@@ -24,7 +25,7 @@ fs.readFile('./eclipse.html', function (err, html) {
         // sectionsList[seectionIndex]['id'] = header;
 
         let section = {
-			name: headerTittle.text(),
+			name: `${headerTittle.text()}`,
 			item: []
 		}
 
@@ -35,30 +36,46 @@ fs.readFile('./eclipse.html', function (err, html) {
             let articleDescription =article.find(' article>p:nth-of-type(2)');
             let httpMethod =article.find('span.type');
             let url = article.find(`pre.prettyprint.language-html.prettyprinted code span.pln`);
+            // console.log(parse(url.text()).query)
+            let queryParams = [];
+            if (parse(url.text()).query !== ''){
+                let params = new URLSearchParams(parse(url.text()).query);
+                let entries = params.entries();
+                for(let entry of entries) { // each 'entry' is a [key, value] tupple
+                const [key, value] = entry;
+                queryParams.push({key, value})
+                }
+                console.log(entries)
+                console.log(queryParams)
+                 
+            }
 
             let articleObj = {
-                name: articleName.text(),
+                name: `${articleName.text()}`,
                 request: {
-                    method: httpMethod.text(),
-                    header: [],
+                    method: `${httpMethod.text()}`,
+                    header: [
+                        {
+                            "key": "Authorization",
+                            "value": "Basic {{location}}",
+                            "type": "text"
+                        }
+                    ],
                     body: {
                         mode: "raw",
                         raw: ""
                     },
                     url: {
-                        raw: url.text(),
+                        raw: `${url.text()}`,
                         protocol: "https",
                         host: [
-                            "baseurl"
+                            `${parse(url.text()).host}`
                         ],
-                        path: [
-                            "v1",
-                            "admin",
-                            "authorization",
-                            "user"
-                        ]
+                        path: parse(url.text()).pathname.split('/'),
+                        query: queryParams
+                           
                     },
-                    description:articleDescription.text()
+                    description:`${articleDescription.text()}`
                 }
             };
 
